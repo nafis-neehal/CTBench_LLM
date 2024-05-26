@@ -4,3 +4,4 @@ ctbench_scripts_venv
 
 #files
 secret_keys.py 
+model_list.py
