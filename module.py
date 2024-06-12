@@ -222,7 +222,7 @@ def run_generation_single_hf_models(message, hf_url, huggingface_token, temperat
         seed = 42,
         temperature=temperature,
         stream=False,
-        max_tokens=500
+        max_tokens=1000
     )
     return chat_completion.choices[0].message.content
 
@@ -238,7 +238,7 @@ def run_generation_single_openai(message, model_name, openai_token, temperature=
       seed = 42,
       temperature=temperature,
       stream=False,
-      max_tokens=500
+      max_tokens=1000
     )
     return response.choices[0].message.content
 
