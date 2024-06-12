@@ -1,6 +1,8 @@
 # CTBench_LLM
 This repository contains the CT-Repo and CT-Pub datasets and demo codes to run the benchmark. 
 
+[![DOI](https://zenodo.org/badge/806204687.svg)](https://zenodo.org/doi/10.5281/zenodo.11604074)
+
 # Steps to run 
 1. Create a separate virtual environment in Python3. Let's name it 'my_venv'.
 ```
