@@ -1,5 +1,5 @@
 # CTBench_LLM
-This is for the CTBench project scripts for other people to run. 
+This repository contains the CT-Repo and CT-Pub datasets and demo codes to run the benchmark. 
 
 # Steps to run 
 1. Create a separate virtual environment in Python3. Let's name it 'my_venv'.
