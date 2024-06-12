@@ -16,7 +16,7 @@ source my_venv/bin/activate
 ```
 pip3 install -r requirements.txt 
 ```
-3. Run the demo_scripts.ipynb notebook and explore the examples.
+3. Run the [Demo Scripts](demo_scripts.ipynb) notebook to explore example Generation (zero/three shot) and Evaluation with GPT-4o codes. Also run the [BERT Score Calculate](BERT_Score_Calculate.ipynb) notebook to explore the BERT Score evaluations at different thresholds.
 
 # Data (Version 1.0)
 1. [CT-Pub Dataset (including 3 examples for three-shot setting) - 103 Trials](data/CT-Pub-With-Examples.csv)
