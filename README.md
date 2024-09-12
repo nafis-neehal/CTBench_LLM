@@ -16,7 +16,10 @@ source my_venv/bin/activate
 ```
 pip3 install -r requirements.txt 
 ```
-3. Run the [Demo Scripts Single](demo_scripts_single_gen_eval.ipynb) and [Demo Scripts Batch](demo_scripts_batch_gen_eval.ipynb) notebook to explore example Generation (zero/three shot) and Evaluation with GPT-4o codes for a single example and for the whole batch of the data respectively. Also run the [BERT Score Calculate](BERT_Score_Pipeline_CT_PUB.ipynb) notebook to explore the BERT Score evaluations at 0.7 threshold for CT_PUB data and can be modified for CT_REPO data as well. And for GPT4o evaluation, explore the [GPT 4 Scoring](demo_scripts_batch_scoring.ipynb) notebook.
+3. Running the Scripts -
+   3.1 Run the [Demo Scripts Single](demo_scripts_single_gen_eval.ipynb) and [Demo Scripts Batch](demo_scripts_batch_gen_eval.ipynb) notebook to explore example Generation (zero/three shot) and Evaluation with GPT-4o codes for a single example and for the whole batch of the data respectively. The batch script will generate two files (CT-Pub-With-Examples-Corrected-allgen.csv, CT-Pub-With-Examples-Corrected-allgpteval.csv). The first one contains generation responses from our models (GPT4o and Llama3.1) in both 0/3 shot setting. The second one contains matched responses for all 4 model/ICL settings evaluated by GPT4o. 
+   3.2 For getting scores (precision, recall, f1) based on GPT4o evaluation, explore the [GPT 4 Scoring](demo_scripts_batch_scoring.ipynb) notebook. Use the CT-Pub-With-Examples-Corrected-allgpteval.csv file as input which was generated after 3.1.  
+   3.3 Also run the [BERT Score Calculate](BERT_Score_Pipeline_CT_PUB.ipynb) notebook to explore the BERT Score evaluations at 0.7 threshold for CT_PUB data (use CT-Pub-With-Examples-Corrected-allgen.csv generated in step 3.1). This can be modified for CT_REPO data as well in same process. 
 
 # Data (Version 1.0)
 1. [CT-Pub Dataset (including 3 examples for three-shot setting) - 103 Trials](data_new/CT-Pub-With-Examples-Corrected.csv)
