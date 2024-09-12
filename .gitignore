@@ -4,7 +4,7 @@ ctbench_scripts_venv
 local_scripts
 misc_code/
 hidden_data/
-data/
+data
 
 #files
 secret_keys.py 
