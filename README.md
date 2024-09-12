@@ -16,12 +16,11 @@ source my_venv/bin/activate
 ```
 pip3 install -r requirements.txt 
 ```
-3. Run the [Demo Scripts](demo_scripts.ipynb) notebook to explore example Generation (zero/three shot) and Evaluation with GPT-4o codes. Also run the [BERT Score Calculate](BERT_Score_Calculate.ipynb) notebook to explore the BERT Score evaluations at different thresholds.
+3. Run the [Demo Scripts Single](demo_scripts_single_gen_eval.ipynb) and [Demo Scripts Batch](demo_scripts_batch_gen_eval.ipynb) notebook to explore example Generation (zero/three shot) and Evaluation with GPT-4o codes for a single example and for the whole batch of the data respectively. Also run the [BERT Score Calculate](BERT_Score_Pipeline_CT_PUB.ipynb) notebook to explore the BERT Score evaluations at 0.7 threshold for CT_PUB data and can be modified for CT_REPO data as well. And for GPT4o evaluation, explore the [GPT 4 Scoring](demo_scripts_batch_scoring.ipynb) notebook.
 
 # Data (Version 1.0)
-1. [CT-Pub Dataset (including 3 examples for three-shot setting) - 103 Trials](data/CT-Pub-With-Examples.csv)
-2. [CT-Repo Dataset (including 3 examples for three-shot setting) without any pre-processing - 1798 Trials](data/CT-Repo-With-Examples-Full-Version.csv)
-3. [CT-Repo Dataset (including 3 examples for three-shot setting) after pre-processing - 1693 Trials](data/CT-Repo-With-Examples-Processed-Version.csv)
+1. [CT-Pub Dataset (including 3 examples for three-shot setting) - 103 Trials](data_new/CT-Pub-With-Examples-Corrected.csv)
+2. [CT-Repo Dataset (including 3 examples for three-shot setting) after pre-processing - 1693 Trials](data_new/CT-Repo-With-Examples-Processed-Version-Corrected.csv)
 
 # Metadata (Croissant Format) of CT-Pub Dataset
 ```
@@ -34,9 +33,9 @@ pip3 install -r requirements.txt
   "distribution": [
     {
       "@type": "cr:FileObject",
-      "@id": "CT-Pub-With-Examples.csv",
-      "name": "CT-Pub-With-Examples.csv",
-      "contentUrl": "data/CT-Pub-With-Examples.csv",
+      "@id": "CT-Pub-With-Examples-Corrected.csv",
+      "name": "CT-Pub-With-Examples-Corrected.csv",
+      "contentUrl": "data_new/CT-Pub-With-Examples-Corrected.csv",
       "encodingFormat": "text/csv",
       "sha256": "your_file_hash_here"
     }
@@ -53,7 +52,7 @@ pip3 install -r requirements.txt
           "description": "Unique ID of the clinical Trial",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "NCTId"
             }
@@ -65,7 +64,7 @@ pip3 install -r requirements.txt
           "description": "The title of the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "BriefTitle"
             }
@@ -77,7 +76,7 @@ pip3 install -r requirements.txt
           "description": "A brief summary of the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "BriefSummary"
             }
@@ -89,7 +88,7 @@ pip3 install -r requirements.txt
           "description": "The conditions being studied in the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "Conditions"
             }
@@ -101,7 +100,7 @@ pip3 install -r requirements.txt
           "description": "The interventions used in the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "Interventions"
             }
@@ -113,7 +112,7 @@ pip3 install -r requirements.txt
           "description": "The primary outcome(s) of the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "PrimaryOutcomes"
             }
@@ -125,7 +124,7 @@ pip3 install -r requirements.txt
           "description": "The eligibility criteria for participants in the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "EligibilityCriteria"
             }
@@ -133,13 +132,37 @@ pip3 install -r requirements.txt
         },
         {
           "@type": "cr:Field",
-          "name": "BaselineMeasures",
+          "name": "TrialGroup",
+          "description": "The one of the big 5 trial categories",
+          "dataType": "sc:Text",
+          "references": {
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
+            "extract": {
+              "column": "TrialGroup"
+            }
+          }
+        },
+        {
+          "@type": "cr:Field",
+          "name": "API_BaselineMeasures",
           "description": "Baseline features collected from the API.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
-              "column": "BaselineMeasures"
+              "column": "API_BaselineMeasures"
+            }
+          }
+        },
+        {
+          "@type": "cr:Field",
+          "name": "API_BaselineMeasures_Corrected",
+          "description": "Baseline features collected from the API and then Processed/Cleaned.",
+          "dataType": "sc:Text",
+          "references": {
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
+            "extract": {
+              "column": "API_BaselineMeasures_Corrected"
             }
           }
         },
@@ -149,9 +172,21 @@ pip3 install -r requirements.txt
           "description": "Baseline features manually collected from related publications.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Pub-With-Examples.csv" },
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
             "extract": {
               "column": "Paper_BaselineMeasures"
+            }
+          }
+        }
+        {
+          "@type": "cr:Field",
+          "name": "Paper_BaselineMeasures_Corrected",
+          "description": "Baseline features manually collected from related publications and cleaned/processed.",
+          "dataType": "sc:Text",
+          "references": {
+            "fileObject": { "@id": "CT-Pub-With-Examples-Corrected.csv" },
+            "extract": {
+              "column": "Paper_BaselineMeasures_Corrected"
             }
           }
         }
@@ -173,9 +208,9 @@ pip3 install -r requirements.txt
   "distribution": [
     {
       "@type": "cr:FileObject",
-      "@id": "CT-Repo-With-Examples-Processed-Version.csv",
-      "name": "CT-Repo-With-Examples-Processed-Version.csv",
-      "contentUrl": "data/CT-Repo-With-Examples-Processed-Version.csv",
+      "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv",
+      "name": "CT-Repo-With-Examples-Processed-Version-Corrected.csv",
+      "contentUrl": "data/CT-Repo-With-Examples-Processed-Version-Corrected.csv",
       "encodingFormat": "text/csv",
       "sha256": "your_file_hash_here"
     }
@@ -192,7 +227,7 @@ pip3 install -r requirements.txt
           "description": "Unique ID of the clinical Trial",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
               "column": "NCTId"
             }
@@ -204,7 +239,7 @@ pip3 install -r requirements.txt
           "description": "The title of the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
               "column": "BriefTitle"
             }
@@ -216,7 +251,7 @@ pip3 install -r requirements.txt
           "description": "A brief summary of the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
               "column": "BriefSummary"
             }
@@ -228,7 +263,7 @@ pip3 install -r requirements.txt
           "description": "The conditions being studied in the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
               "column": "Conditions"
             }
@@ -240,7 +275,7 @@ pip3 install -r requirements.txt
           "description": "The interventions used in the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
               "column": "Interventions"
             }
@@ -252,7 +287,7 @@ pip3 install -r requirements.txt
           "description": "The primary outcome(s) of the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
               "column": "PrimaryOutcomes"
             }
@@ -264,7 +299,7 @@ pip3 install -r requirements.txt
           "description": "The eligibility criteria for participants in the clinical trial.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
               "column": "EligibilityCriteria"
             }
@@ -272,13 +307,37 @@ pip3 install -r requirements.txt
         },
         {
           "@type": "cr:Field",
-          "name": "BaselineMeasures",
+          "name": "TrialGroup",
+          "description": "The one of the big 5 trial categories",
+          "dataType": "sc:Text",
+          "references": {
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
+            "extract": {
+              "column": "TrialGroup"
+            }
+          }
+        },
+        {
+          "@type": "cr:Field",
+          "name": "API_BaselineMeasures",
           "description": "Baseline features collected from the API.",
           "dataType": "sc:Text",
           "references": {
-            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version.csv" },
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
             "extract": {
-              "column": "BaselineMeasures"
+              "column": "API_BaselineMeasures"
+            }
+          }
+        }
+        {
+          "@type": "cr:Field",
+          "name": "API_BaselineMeasures_Corrected",
+          "description": "Baseline features collected from the API and clean/processed.",
+          "dataType": "sc:Text",
+          "references": {
+            "fileObject": { "@id": "CT-Repo-With-Examples-Processed-Version-Corrected.csv" },
+            "extract": {
+              "column": "API_BaselineMeasures_Corrected"
             }
           }
         }
