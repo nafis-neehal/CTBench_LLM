@@ -20,7 +20,7 @@ pip3 install -r requirements.txt
 
 # Data (Version 1.0)
 1. [CT-Pub Dataset (including 3 examples for three-shot setting) - 103 Trials](data_new/CT-Pub-With-Examples-Corrected.csv)
-2. [CT-Repo Dataset (including 3 examples for three-shot setting) after pre-processing - 1693 Trials](data/CT-Repo-With-Examples-Processed-Version-Corrected.csv)
+2. [CT-Repo Dataset (including 3 examples for three-shot setting) after pre-processing - 1693 Trials](data_new/CT-Repo-With-Examples-Processed-Version-Corrected.csv)
 
 # Metadata (Croissant Format) of CT-Pub Dataset
 ```
