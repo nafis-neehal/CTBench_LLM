@@ -16,7 +16,7 @@ source my_venv/bin/activate
 ```
 pip3 install -r requirements.txt 
 ```
-3. Run the [Demo Scripts Single](demo_scripts_single_gen_eval.ipynb) and [Demo Scripts Batch](demo_scripts_batch_gen_eval.ipynb) notebook to explore example Generation (zero/three shot) and Evaluation with GPT-4o codes for a single example and for the whole batch of the data respectively. Also run the [BERT Score Calculate](BERT_Score_Pipeline_CT_PUB.ipynb) notebook to explore the BERT Score evaluations at 0.7 threshold for CT_PUB data and can be modified for CT_REPO data as well.
+3. Run the [Demo Scripts Single](demo_scripts_single_gen_eval.ipynb) and [Demo Scripts Batch](demo_scripts_batch_gen_eval.ipynb) notebook to explore example Generation (zero/three shot) and Evaluation with GPT-4o codes for a single example and for the whole batch of the data respectively. Also run the [BERT Score Calculate](BERT_Score_Pipeline_CT_PUB.ipynb) notebook to explore the BERT Score evaluations at 0.7 threshold for CT_PUB data and can be modified for CT_REPO data as well. And for GPT4o evaluation, explore the [GPT 4 Scoring](demo_scripts_batch_scoring.ipynb) notebook.
 
 # Data (Version 1.0)
 1. [CT-Pub Dataset (including 3 examples for three-shot setting) - 103 Trials](data_new/CT-Pub-With-Examples-Corrected.csv)
