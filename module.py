@@ -56,6 +56,23 @@ def build_silver_example_questions_from_row(data):
 
     return question
 
+def build_example_questions_from_row(data, ref_col_name):
+    ids = ['NCT00000620', 'NCT01483560', 'NCT04280783']
+    examples = data[data['NCTId'].isin(ids)]
+    question = ""
+    for index, row in examples.iterrows():
+      question += "##Question:\n"
+      question += f"<Title> \n {row['BriefTitle']}\n"
+      question += f"<Brief Summary> \n {row['BriefSummary']}\n"
+      question += f"<Condition> \n {row['Conditions']}\n"
+      question += f"<Eligibility Criteria> \n {row['EligibilityCriteria']}\n"
+      question += f"<Intervention> \n {row['Interventions']}\n"
+      question += f"<Outcome> \n {row['PrimaryOutcomes']}\n"
+      question += "##Answer:\n"
+      question += f"{row[ref_col_name]}\n\n"
+
+    return question
+
 def build_zeroshot_prompt(_, row):
 
     #prompt structure
@@ -66,7 +83,12 @@ def build_zeroshot_prompt(_, row):
     condition under study, inclusion and exclusion criteria, intervention, and outcomes."
 
     #baseline measure defintion
-    system_message += "In answer to this question, return a list of probable baseline features (separated by commas) of the clinical trial. \
+    # system_message += "In answer to this question, return a list of probable baseline features (separated by commas) of the clinical trial. \
+    # Baseline features are the set of baseline or demographic characteristics that are assessed at baseline and used in the analysis of the \
+    # primary outcome measure(s) to characterize the study population and assess validity. Clinical trial-related publications typically \
+    # include a table of baseline features assessed  by arm or comparison group and for the entire population of participants in the clinical trial."
+    system_message += "In answer to this question, return a list of probable baseline features (each feature should be enclosed within a pair of backticks \
+    and each feature should be separated by commas from other features) of the clinical trial. \
     Baseline features are the set of baseline or demographic characteristics that are assessed at baseline and used in the analysis of the \
     primary outcome measure(s) to characterize the study population and assess validity. Clinical trial-related publications typically \
     include a table of baseline features assessed  by arm or comparison group and for the entire population of participants in the clinical trial."
@@ -94,7 +116,7 @@ def build_zeroshot_prompt(_, row):
     return system_message, question
 
 
-def build_three_shot_prompt(data, row):
+def build_three_shot_prompt(data, row, ref_col_name):
     #prompt structure
     system_message = "You are a helpful assistant with experience in the clinical domain and clinical trial design. \
     You'll be asked queries related to clinical trials. These inquiries will be delineated by a '##Question' heading. \
@@ -103,7 +125,12 @@ def build_three_shot_prompt(data, row):
     condition under study, inclusion and exclusion criteria, intervention, and outcomes."
 
     #baseline measure defintion
-    system_message += "In answer to this question, return a list of probable baseline features (separated by commas) of the clinical trial. \
+    # system_message += "In answer to this question, return a list of probable baseline features (separated by commas) of the clinical trial. \
+    # Baseline features are the set of baseline or demographic characteristics that are assessed at baseline and used in the analysis of the \
+    # primary outcome measure(s) to characterize the study population and assess validity. Clinical trial-related publications typically \
+    # include a table of baseline features assessed  by arm or comparison group and for the entire population of participants in the clinical trial."
+    system_message += "In answer to this question, return a list of probable baseline features (each feature should be enclosed within a pair of backticks \
+    and each feature should be separated by commas from other features) of the clinical trial. \
     Baseline features are the set of baseline or demographic characteristics that are assessed at baseline and used in the analysis of the \
     primary outcome measure(s) to characterize the study population and assess validity. Clinical trial-related publications typically \
     include a table of baseline features assessed  by arm or comparison group and for the entire population of participants in the clinical trial."
@@ -112,7 +139,8 @@ def build_three_shot_prompt(data, row):
     system_message += "You will be given three examples. In each example, the question is delineated by '##Question' heading and the corresponding answer is delineated by '##Answer' heading. \
     Follow a similar pattern when you generate answers. Do not give any additional explanations or use any tags or headings, only return the list of baseline features."
 
-    example = build_silver_example_questions_from_row(data)
+    #example = build_silver_example_questions_from_row(data)
+    example = build_example_questions_from_row(data, ref_col_name)
 
     #divide row information to generatie the query
     title = row['BriefTitle']
@@ -323,6 +351,20 @@ def extract_elements_with_cleaning(text):
 
     return processed_list
 
+def extract_elements_v2(s):
+  """
+  Extracts elements enclosed within backticks (`) from a string.
+
+  Args:
+    s: The input string.
+
+  Returns:
+    A list of elements enclosed within backticks.
+  """
+  pattern = r"`(.*?)`"
+  elements = re.findall(pattern, s)
+  return elements
+
 def run_evaluation_with_gpt4o(system_message, question, openai_token):
 
     client = OpenAI(
@@ -342,3 +384,25 @@ def run_evaluation_with_gpt4o(system_message, question, openai_token):
       max_tokens=1000
     )
     return response.choices[0].message.content
+
+def match_to_score(matched_pairs, remaining_reference_features, remaining_candidate_features):
+    """
+    Calculates precision, recall, and F1 score based on the given matched pairs and remaining features.
+
+    Parameters:
+    matched_pairs (list): A list of matched feature pairs.
+    remaining_reference_features (list): A list of remaining reference features.
+    remaining_candidate_features (list): A list of remaining candidate features.
+
+    Returns:
+    dict: A dictionary containing the precision, recall, and F1 score.
+    """
+    precision = len(matched_pairs) / (len(matched_pairs) + len(remaining_candidate_features)) # TP/(TP+FP)
+    recall = len(matched_pairs) /  (len(matched_pairs) + len(remaining_reference_features)) #TP/(TP+FN)
+    
+    if precision == 0 or recall == 0:
+        f1 = 0
+    else:
+        f1 = 2 * (precision * recall) / (precision + recall) # F1
+
+    return {"precision": precision, "recall": recall, "f1": f1}

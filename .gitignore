@@ -2,10 +2,13 @@
 #folders
 ctbench_scripts_venv
 local_scripts
+misc_code/
+hidden_data/
+data/
 
 #files
 secret_keys.py 
 model_list.py
 ct-llm-firebase-key.json
 
-misc_code/
+
