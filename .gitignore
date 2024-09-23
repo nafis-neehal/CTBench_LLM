@@ -3,7 +3,7 @@
 ctbench_scripts_venv
 local_scripts
 misc_code/
-hidden_data/
+hidden_data/no_release
 data
 
 #files
