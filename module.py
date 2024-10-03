@@ -1,5 +1,6 @@
 from openai import OpenAI 
 import re
+import json
 
 ############################ generate message templete ##############################
 
@@ -381,7 +382,7 @@ def run_evaluation_with_gpt4o(system_message, question, openai_token):
       seed = 42,
       temperature=0.0,
       stream=False,
-      max_tokens=1000
+      max_tokens=2000
     )
     return response.choices[0].message.content
 
@@ -406,3 +407,58 @@ def match_to_score(matched_pairs, remaining_reference_features, remaining_candid
         f1 = 2 * (precision * recall) / (precision + recall) # F1
 
     return {"precision": precision, "recall": recall, "f1": f1}
+
+
+################## Evaluation Guard Rails ##################
+# Guardrail function 1
+# Guardrail 1 checks whether all reference features are in reference_list and candidate features are in candidate_list.
+def guardrail_1(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
+    reference_in_matched = all(feature[0] in reference_list for feature in matched_features)
+    reference_in_remaining = all(feature in reference_list for feature in remaining_reference_features)
+    
+    candidate_in_matched = all(feature[1] in candidate_list for feature in matched_features)
+    candidate_in_remaining = all(feature in candidate_list for feature in remaining_candidate_features)
+    
+    return reference_in_matched and reference_in_remaining and candidate_in_matched and candidate_in_remaining
+
+# Guardrail function 2
+# ensures that the total number of matched features plus remaining reference/candidate features 
+# is equal to the length of the original reference_list and candidate_list.
+def guardrail_2(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
+    return (len(matched_features) + len(remaining_reference_features) == len(reference_list)) and \
+           (len(matched_features) + len(remaining_candidate_features) == len(candidate_list))
+
+# Guardrail function 3
+# ensures that no feature is used more than once across matched_features, remaining_reference_features, and remaining_candidate_features
+def guardrail_3(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
+    used_reference_features = set([feature[0] for feature in matched_features] + remaining_reference_features)
+    used_candidate_features = set([feature[1] for feature in matched_features] + remaining_candidate_features)
+    
+    return len(used_reference_features) == len(set(reference_list)) and len(used_candidate_features) == len(set(candidate_list))
+
+# Function to run guardrails
+# This function runs all three guardrails on the eval_model_response and returns True if all checks pass, otherwise False
+def run_guardrails(eval_model_response, reference_list, candidate_list):
+    matched_features = eval_model_response.get('matched_features', [])
+    remaining_reference_features = eval_model_response.get('remaining_reference_features', [])
+    remaining_candidate_features = eval_model_response.get('remaining_candidate_features', [])
+    
+    return guardrail_1(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list) and \
+           guardrail_2(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list) and \
+           guardrail_3(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list)
+
+# Retry logic
+def retry_api_call(row, module, reference_list, candidate_list, openai_api_key, max_retries=3):
+    qstart = module.get_question_from_row(row)
+    system_message, question = module.build_gpt4_eval_prompt(reference_list, candidate_list, qstart)
+    
+    for attempt in range(max_retries):
+        eval_model_response = module.run_evaluation_with_gpt4o(system_message, question, openai_api_key)
+        
+        if run_guardrails(json.loads(eval_model_response), reference_list, candidate_list):
+            return eval_model_response
+        else:
+            print(f"Guardrail check failed on attempt {attempt + 1}. Retrying...")
+    
+    print("Max retries reached. Adding error message.")
+    return {"error": "Guardrail checks failed after 3 retries."}
