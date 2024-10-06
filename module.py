@@ -382,7 +382,7 @@ def run_evaluation_with_gpt4o(system_message, question, openai_token):
       seed = 42,
       temperature=0.0,
       stream=False,
-      max_tokens=2000
+      max_tokens=3000
     )
     return response.choices[0].message.content
 
@@ -408,57 +408,135 @@ def match_to_score(matched_pairs, remaining_reference_features, remaining_candid
 
     return {"precision": precision, "recall": recall, "f1": f1}
 
-
-################## Evaluation Guard Rails ##################
-# Guardrail function 1
-# Guardrail 1 checks whether all reference features are in reference_list and candidate features are in candidate_list.
-def guardrail_1(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
-    reference_in_matched = all(feature[0] in reference_list for feature in matched_features)
-    reference_in_remaining = all(feature in reference_list for feature in remaining_reference_features)
-    
-    candidate_in_matched = all(feature[1] in candidate_list for feature in matched_features)
-    candidate_in_remaining = all(feature in candidate_list for feature in remaining_candidate_features)
-    
-    return reference_in_matched and reference_in_remaining and candidate_in_matched and candidate_in_remaining
-
-# Guardrail function 2
-# ensures that the total number of matched features plus remaining reference/candidate features 
-# is equal to the length of the original reference_list and candidate_list.
-def guardrail_2(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
-    return (len(matched_features) + len(remaining_reference_features) == len(reference_list)) and \
-           (len(matched_features) + len(remaining_candidate_features) == len(candidate_list))
-
-# Guardrail function 3
-# ensures that no feature is used more than once across matched_features, remaining_reference_features, and remaining_candidate_features
-def guardrail_3(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
-    used_reference_features = set([feature[0] for feature in matched_features] + remaining_reference_features)
-    used_candidate_features = set([feature[1] for feature in matched_features] + remaining_candidate_features)
-    
-    return len(used_reference_features) == len(set(reference_list)) and len(used_candidate_features) == len(set(candidate_list))
-
-# Function to run guardrails
-# This function runs all three guardrails on the eval_model_response and returns True if all checks pass, otherwise False
-def run_guardrails(eval_model_response, reference_list, candidate_list):
-    matched_features = eval_model_response.get('matched_features', [])
-    remaining_reference_features = eval_model_response.get('remaining_reference_features', [])
-    remaining_candidate_features = eval_model_response.get('remaining_candidate_features', [])
-    
-    return guardrail_1(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list) and \
-           guardrail_2(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list) and \
-           guardrail_3(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list)
-
-# Retry logic
-def retry_api_call(row, module, reference_list, candidate_list, openai_api_key, max_retries=3):
-    qstart = module.get_question_from_row(row)
-    system_message, question = module.build_gpt4_eval_prompt(reference_list, candidate_list, qstart)
-    
-    for attempt in range(max_retries):
-        eval_model_response = module.run_evaluation_with_gpt4o(system_message, question, openai_api_key)
+############################ Experimental Functions ############################
+def build_gpt4_eval_prompt_with_example(reference, candidate, qstart):
+    system = """
+        You are an expert assistant in the medical domain and clinical trial design. You are provided with details of a clinical trial.
+        Your task is to determine which candidate baseline features match any feature in a reference baseline feature list for that trial. 
+        You need to consider the context and semantics while matching the features. You'll also be provided with two examples, one with incorrect
+        outputs and why they are incorrect and another one with correct outputs. 
         
-        if run_guardrails(json.loads(eval_model_response), reference_list, candidate_list):
-            return eval_model_response
-        else:
-            print(f"Guardrail check failed on attempt {attempt + 1}. Retrying...")
+        For each candidate feature:
+
+            1. Identify a matching reference feature based on similarity in context and semantics.
+            2. Remember the matched pair.
+            3. A reference feature can only be matched to one candidate feature and cannot be further considered for any consecutive matches.
+            4. If there are multiple possible matches (i.e. one reference feature can be matched to multiple candidate features or vice versa), choose the most contextually similar one.
+            5. Also keep track of which reference and candidate features remain unmatched.
+
+        Once the matching is complete, provide the results in a JSON format as follows:
+        {
+            "matched_features": [
+                ["<reference feature>", "<candidate feature>"],
+            ],
+            "remaining_reference_features": [
+                "<unmatched reference feature>",
+            ],
+            "remaining_candidate_features": [
+                "<unmatched candidate feature>"
+            ]
+        }
+
+        Let me give you an example to help you understand the task better.
+
+        These are the example reference and candidate features - 
+        reference_features: [`Age`, `Blood pressure`, `Height`, `Gender`,`Previous Medication`]
+        candidate_features: [`Age`, `Systolic Blood pressure`, `Diastolic Blood Pressure`, `Body Mass Index`, `Race`]
+
+        This will be considered a hallucinated/incorrect output - 
+        { "matched_features": [[`Age`, `Age`], [`body mass index`, `Body Mass Index`], [`Blood Pressure`, `Systolic Blood Pressure`], 
+                               [`Blood Pressure`, `Diastolic Blood Pressure`], [`Height`, `patient height`]], 
+          "remaining_reference_features": [`Previous Medication`], 
+          "remaining_candidate_features": [`Race`]}
+
+        Because:
+        - `body mass index` doesn't exist in the given list of reference_features 
+        - `Blood Pressure` is matched to both `Systolic Blood Pressure` and `Diastolic Blood Pressure` which isn't allowed. You must match it to only one. 
+        - `patient height` doesn't exist in the given list of candidate_features
+        - `Gender` doesn't appear in the matched_features or the remaining_reference_features, but existed in reference_features list
+
+        This will be considered the correct output -
+        { "matched_features": [ [`Age`, `Age`], [`Blood Pressure`, `Systolic Blood Pressure`]], 
+          "remaining_reference_features": [ `Height`, `Gender`, `Previous Medication`], 
+          "remaining_candidate_features": [ `Body Mass Index`, `Diastolic Blood Pressure`, `Race`]}
+
+        Now the question begins. 
+    """
+
+    question = f"\n Here is the trial information: \n\n"
+    question += f"{qstart}"
+
+    question += f"\n\nHere is the list of reference features: \n\n"
+    ir = 1
+    for ref_item in reference:
+        question += (
+            f"{ir}. {ref_item}\n"
+        )
+        ir += 1
+
+
+    question += f"\nCandidate features: \n\n"
+    ic = 1
+    for can_item in candidate:
+        question += (
+            f"{ic}. {can_item}\n"
+        )
+        ic += 1
+
+    return system, question
+
+
+
+# ################## Evaluation Guard Rails ##################
+# # Guardrail function 1
+# # Guardrail 1 checks whether all reference features are in reference_list and candidate features are in candidate_list.
+# def guardrail_1(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
+#     reference_in_matched = all(feature[0] in reference_list for feature in matched_features)
+#     reference_in_remaining = all(feature in reference_list for feature in remaining_reference_features)
     
-    print("Max retries reached. Adding error message.")
-    return {"error": "Guardrail checks failed after 3 retries."}
+#     candidate_in_matched = all(feature[1] in candidate_list for feature in matched_features)
+#     candidate_in_remaining = all(feature in candidate_list for feature in remaining_candidate_features)
+    
+#     return reference_in_matched and reference_in_remaining and candidate_in_matched and candidate_in_remaining
+
+# # Guardrail function 2
+# # ensures that the total number of matched features plus remaining reference/candidate features 
+# # is equal to the length of the original reference_list and candidate_list.
+# def guardrail_2(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
+#     return (len(matched_features) + len(remaining_reference_features) == len(reference_list)) and \
+#            (len(matched_features) + len(remaining_candidate_features) == len(candidate_list))
+
+# # Guardrail function 3
+# # ensures that no feature is used more than once across matched_features, remaining_reference_features, and remaining_candidate_features
+# def guardrail_3(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list):
+#     used_reference_features = set([feature[0] for feature in matched_features] + remaining_reference_features)
+#     used_candidate_features = set([feature[1] for feature in matched_features] + remaining_candidate_features)
+    
+#     return len(used_reference_features) == len(set(reference_list)) and len(used_candidate_features) == len(set(candidate_list))
+
+# # Function to run guardrails
+# # This function runs all three guardrails on the eval_model_response and returns True if all checks pass, otherwise False
+# def run_guardrails(eval_model_response, reference_list, candidate_list):
+#     matched_features = eval_model_response.get('matched_features', [])
+#     remaining_reference_features = eval_model_response.get('remaining_reference_features', [])
+#     remaining_candidate_features = eval_model_response.get('remaining_candidate_features', [])
+    
+#     return guardrail_1(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list) and \
+#            guardrail_2(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list) and \
+#            guardrail_3(matched_features, remaining_reference_features, remaining_candidate_features, reference_list, candidate_list)
+
+# # Retry logic
+# def retry_api_call(row, module, reference_list, candidate_list, openai_api_key, max_retries=3):
+#     qstart = module.get_question_from_row(row)
+#     system_message, question = module.build_gpt4_eval_prompt(reference_list, candidate_list, qstart)
+    
+#     for attempt in range(max_retries):
+#         eval_model_response = module.run_evaluation_with_gpt4o(system_message, question, openai_api_key)
+        
+#         if run_guardrails(json.loads(eval_model_response), reference_list, candidate_list):
+#             return eval_model_response
+#         else:
+#             print(f"Guardrail check failed on attempt {attempt + 1}. Retrying...")
+    
+#     print("Max retries reached. Adding error message.")
+#     return {"error": "Guardrail checks failed after 3 retries."}
